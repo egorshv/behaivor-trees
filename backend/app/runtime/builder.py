@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 import py_trees
 
@@ -56,6 +57,7 @@ def build_runtime_tree(tree: TreeResponse | TreeUpsertRequest) -> CompiledTree:
         validation = validate_tree_payload(tree)
         if not validation.valid:
             raise ValueError("Cannot build runtime for invalid tree.")
+        now = datetime.now(timezone.utc)
         payload = TreeResponse(
             id="transient",
             name=tree.name,
@@ -63,8 +65,8 @@ def build_runtime_tree(tree: TreeResponse | TreeUpsertRequest) -> CompiledTree:
             root_node_id=validation.root_node_id,
             is_valid=True,
             validation_errors=[],
-            created_at=py_trees.common.Duration.INFINITE,  # type: ignore[arg-type]
-            updated_at=py_trees.common.Duration.INFINITE,  # type: ignore[arg-type]
+            created_at=now,
+            updated_at=now,
             node_count=len(tree.nodes),
             nodes=tree.nodes,
             edges=tree.edges,
@@ -159,4 +161,3 @@ class RuntimeManager:
 
     def forget(self, session_id: str) -> None:
         self._runtimes.pop(session_id, None)
-
