@@ -8,6 +8,7 @@ interface InspectorProps {
   tree: TreeDraft;
   onUpdateNode: (nodeId: string, updater: (node: NodeDTO) => NodeDTO) => void;
   onDeleteNode: (nodeId: string) => void;
+  onDisconnectNode: (nodeId: string) => void;
   onReorderChild: (parentId: string, childId: string, direction: -1 | 1) => void;
 }
 
@@ -24,6 +25,7 @@ export function Inspector({
   tree,
   onUpdateNode,
   onDeleteNode,
+  onDisconnectNode,
   onReorderChild,
 }: InspectorProps) {
   if (!node) {
@@ -176,6 +178,9 @@ export function Inspector({
                 {index + 1}. {child.label}
               </span>
               <div className="child-row__actions">
+                <button onClick={() => onDisconnectNode(child.id)} type="button">
+                  Unlink
+                </button>
                 <button
                   disabled={index === 0}
                   onClick={() => onReorderChild(node.id, child.id, -1)}
@@ -202,4 +207,3 @@ export function Inspector({
     </section>
   );
 }
-

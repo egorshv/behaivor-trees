@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { addNode, connectNodes, createEmptyTree, deleteNodeCascade, preparePayload, reorderChild, updateNode } from "./tree";
+import {
+  addNode,
+  canConnectNodes,
+  connectNodes,
+  createEmptyTree,
+  deleteNodeCascade,
+  preparePayload,
+  reorderChild,
+  updateNode,
+} from "./tree";
 
 describe("tree helpers", () => {
   it("creates and connects nodes", () => {
@@ -56,5 +65,22 @@ describe("tree helpers", () => {
 
     expect(tree.nodes).toHaveLength(1);
     expect(tree.nodes[0].id).toBe(root.id);
+  });
+
+  it("prevents cycle creation when reconnecting nodes", () => {
+    let tree = createEmptyTree();
+    tree = addNode(tree, "sequence", { x: 0, y: 0 });
+    tree = addNode(tree, "selector", { x: 100, y: 100 });
+    tree = addNode(tree, "action", { x: 200, y: 200 });
+
+    const root = tree.nodes.find((node) => node.type === "sequence")!;
+    const branch = tree.nodes.find((node) => node.type === "selector")!;
+    const leaf = tree.nodes.find((node) => node.type === "action")!;
+
+    tree = connectNodes(tree, root.id, branch.id);
+    tree = connectNodes(tree, branch.id, leaf.id);
+
+    expect(canConnectNodes(tree, leaf.id, root.id)).toBe(false);
+    expect(canConnectNodes(tree, root.id, leaf.id)).toBe(true);
   });
 });

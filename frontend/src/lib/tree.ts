@@ -110,6 +110,31 @@ export function connectNodes(tree: TreeDraft, sourceId: string, targetId: string
   });
 }
 
+export function canConnectNodes(tree: TreeDraft, sourceId: string, targetId: string): boolean {
+  if (sourceId === targetId) {
+    return false;
+  }
+
+  let currentId: string | null = sourceId;
+  const visited = new Set<string>();
+  while (currentId) {
+    if (visited.has(currentId)) {
+      return false;
+    }
+    visited.add(currentId);
+    const node = tree.nodes.find((candidate) => candidate.id === currentId);
+    if (!node) {
+      return false;
+    }
+    if (node.parent_id === targetId) {
+      return false;
+    }
+    currentId = node.parent_id;
+  }
+
+  return true;
+}
+
 export function disconnectNode(tree: TreeDraft, targetId: string): TreeDraft {
   return normalizeTree({
     ...tree,
@@ -171,4 +196,3 @@ export function preparePayload(tree: TreeDraft): TreeUpsertRequest {
     edges: normalized.edges,
   };
 }
-
