@@ -55,29 +55,47 @@ def validate_tree_payload(payload: TreeUpsertRequest) -> ValidationResult:
         if node.type in LEAF_NODE_TYPES and child_count != 0:
             errors.append(ValidationIssue(node_id=node.id, message="Leaf nodes cannot have children."))
 
-    if roots:
-        visited: set[str] = set()
-        active: set[str] = set()
+    visited: set[str] = set()
+    active: set[str] = set()
+    cycle_nodes: set[str] = set()
 
-        def dfs(node_id: str) -> None:
-            if node_id in active:
-                errors.append(ValidationIssue(node_id=node_id, message="Cycle detected in tree."))
+    def dfs(node_id: str) -> None:
+        if node_id in active:
+            cycle_nodes.add(node_id)
+            return
+        if node_id in visited:
+            return
+        active.add(node_id)
+        visited.add(node_id)
+        for child_id in sorted(
+            children_by_parent.get(node_id, []),
+            key=lambda candidate: nodes_by_id[candidate].order_index,
+        ):
+            dfs(child_id)
+        active.remove(node_id)
+
+    for node_id in sorted(nodes_by_id):
+        dfs(node_id)
+
+    for node_id in sorted(cycle_nodes):
+        errors.append(ValidationIssue(node_id=node_id, message="Cycle detected in tree."))
+
+    if len(roots) == 1:
+        reachable: set[str] = set()
+
+        def walk_from_root(node_id: str) -> None:
+            if node_id in reachable:
                 return
-            if node_id in visited:
-                return
-            active.add(node_id)
-            visited.add(node_id)
+            reachable.add(node_id)
             for child_id in sorted(
                 children_by_parent.get(node_id, []),
                 key=lambda candidate: nodes_by_id[candidate].order_index,
             ):
-                dfs(child_id)
-            active.remove(node_id)
+                walk_from_root(child_id)
 
-        dfs(roots[0])
-        disconnected = set(nodes_by_id) - visited
+        walk_from_root(roots[0])
+        disconnected = set(nodes_by_id) - reachable
         for node_id in sorted(disconnected):
             errors.append(ValidationIssue(node_id=node_id, message="Node is disconnected from the root."))
 
     return ValidationResult(valid=not errors, errors=errors, root_node_id=root_node_id)
-
